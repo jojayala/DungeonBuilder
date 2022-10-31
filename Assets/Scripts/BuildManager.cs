@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Unity.VisualScripting;
@@ -8,8 +9,14 @@ using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+[Serializable]
 public class BuildManager : MonoBehaviour
 {
+    private class ObjectInfoWrapper
+    {
+        public ObjectInfo[] values;
+    };
+    
     public Transform sceneParent;
 
     [Serializable]
@@ -20,69 +27,75 @@ public class BuildManager : MonoBehaviour
     };
 
     public LevelObjectPrefabPair[] pairMap;
-    private Dictionary<LevelObject, GameObject> LevelObjectToPrefab;
-    // Start is called before the first frame update
-    void Start()
+    private Dictionary<LevelObject, GameObject> _levelObjectToPrefab;
+    private void Start()
     {
-        Debug.Log("Start");
-        LevelObjectToPrefab = new Dictionary<LevelObject, GameObject>();
-        // set up the dictionary
+        // Set up the dictionary
+        _levelObjectToPrefab = new Dictionary<LevelObject, GameObject>();
         foreach (LevelObjectPrefabPair pair in pairMap)
         {
-            Debug.Log(pair.levelObject);
-            Debug.Log(pair.prefab);
-            LevelObjectToPrefab[pair.levelObject] = pair.prefab;
+            _levelObjectToPrefab[pair.levelObject] = pair.prefab;
         }
     }
 
+
+    /*
+     * LoadScene()
+     *
+     * Finds every SerializeObject component that is a child of sceneParent, then serializes
+     * each ObjectInfo to level.json
+     */
     public void SaveScene()
     {
-        SerializeObject[] scene;
+        ObjectInfoWrapper scene = new ObjectInfoWrapper();
         List<GameObject> gs = new List<GameObject>();
-        // set scene equal to the children of sceneParent
-        scene= sceneParent.GetComponentsInChildren<SerializeObject>();
-        string result = "[\n";
-        for(int i = 0; i < scene.Length; i++)
-        {
-            string json = JsonUtility.ToJson(scene[i], true);
-            result += json;
-            if (i != scene.Length - 1)
-            {
-                result += ",\n";
-            }
-        }
-
-        result += "]";
-        Debug.Log(result);
+        SerializeObject[] serializeObjects = sceneParent.GetComponentsInChildren<SerializeObject>();
+        scene.values = (from s in serializeObjects 
+            select s.GetObjectInfo()).ToArray();
+        string result = JsonUtility.ToJson(scene, true);
+        System.IO.File.WriteAllTextAsync(Application.persistentDataPath + "level.json", result);
     }
 
-    public void LoadScene(string sceneString)
+    /*
+     * LoadScene()
+     *
+     * Checks level.json for level information, then adds each prefab to the scene as a child of scene parent
+     */
+    public void LoadScene()
     {
-        SerializeObject[] scene = JsonUtility.FromJson<SerializeObject[]>(sceneString);
-        foreach (var sceneObject in scene)
+        // TODO: may be preferable for this to be async, but I'm not sure how to do that
+        string level = System.IO.File.ReadAllText(Application.persistentDataPath + "level.json");
+        ObjectInfoWrapper scene = JsonUtility.FromJson<ObjectInfoWrapper>(level);
+        Debug.Log(scene);
+        foreach (var sceneObject in scene.values)
         {
-            switch (sceneObject.myLevelObject)
+            if (_levelObjectToPrefab.ContainsKey(sceneObject.levelObject))
             {
-                case LevelObject.Sphere:
-                    Instantiate(LevelObjectToPrefab[sceneObject.myLevelObject], 
-                                sceneParent);
-                    break;
-                case LevelObject.Cube:
-                    break;
-                default:
-                    Debug.LogError("Unhandled Serializable Object in loadScene");
-                    break;
+                Instantiate(_levelObjectToPrefab[sceneObject.levelObject], 
+                            sceneObject.position,
+                            sceneObject.rotation,
+                            sceneParent);
+            }
+            else
+            {
+                Debug.LogError($"Could not find scene object {sceneObject.levelObject} in map");
             }
         }
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
+        // TODO: this is not VR input, will be triggered by UI
         if (Input.GetKeyDown(KeyCode.S))
         {
             Debug.Log("Saving");
             SaveScene();
+        }
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            Debug.Log("Loading");
+            LoadScene();
         }
         
     }
