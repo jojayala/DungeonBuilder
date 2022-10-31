@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 2263578955159498522}
   m_Layer: 0
   m_Name: Sphere
-  m_TagString: Untagged
+  m_TagString: level objects
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -110,5 +110,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c94eedd549839094aa72930ae77634e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  myTransform: {fileID: 0}
-  myLevelObject: 0
+  objectName: 0
+  info:
+    levelObject: 0
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+    scale: {x: 0, y: 0, z: 0}

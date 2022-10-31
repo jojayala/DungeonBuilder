@@ -6,7 +6,8 @@ using UnityEngine;
 public enum LevelObject
 {
     Sphere,
-    Cube
+    Cube,
+    Cylinder
 }
 
 /*

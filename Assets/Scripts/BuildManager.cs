@@ -48,12 +48,24 @@ public class BuildManager : MonoBehaviour
     public void SaveScene()
     {
         ObjectInfoWrapper scene = new ObjectInfoWrapper();
-        List<GameObject> gs = new List<GameObject>();
         SerializeObject[] serializeObjects = sceneParent.GetComponentsInChildren<SerializeObject>();
         scene.values = (from s in serializeObjects 
             select s.GetObjectInfo()).ToArray();
         string result = JsonUtility.ToJson(scene, true);
+        Debug.Log(result);
         System.IO.File.WriteAllTextAsync(Application.persistentDataPath + "level.json", result);
+    }
+    
+    public void DeleteScene()
+    {
+        Transform[] transforms = sceneParent.GetComponentsInChildren<Transform>();
+        foreach (var t in transforms)
+        {
+            if (t.gameObject.CompareTag("level objects"))
+            {
+                Destroy(t.gameObject);
+            }
+        }
     }
 
     /*
@@ -97,6 +109,12 @@ public class BuildManager : MonoBehaviour
             Debug.Log("Loading");
             LoadScene();
         }
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+            Debug.Log("Deleting");
+            DeleteScene();
+        }
+        
         
     }
 }
